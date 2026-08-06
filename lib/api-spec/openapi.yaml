@@ -3,13 +3,20 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API de commande de nourriture
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: categories
+    description: Catégories de menu
+  - name: products
+    description: Produits du menu
+  - name: orders
+    description: Commandes
+
 paths:
   /healthz:
     get:
@@ -24,6 +31,188 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /categories:
+    get:
+      operationId: listCategories
+      tags: [categories]
+      summary: Lister toutes les catégories
+      responses:
+        "200":
+          description: Liste des catégories
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Category"
+
+  /categories/{id}/products:
+    get:
+      operationId: listCategoryProducts
+      tags: [categories]
+      summary: Lister les produits d'une catégorie
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Produits de la catégorie
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+        "404":
+          description: Catégorie introuvable
+
+  /products:
+    get:
+      operationId: listProducts
+      tags: [products]
+      summary: Lister tous les produits
+      parameters:
+        - name: categoryId
+          in: query
+          required: false
+          schema:
+            type: ["integer", "null"]
+        - name: available
+          in: query
+          required: false
+          schema:
+            type: ["boolean", "null"]
+      responses:
+        "200":
+          description: Liste des produits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Product"
+
+  /products/{id}:
+    get:
+      operationId: getProduct
+      tags: [products]
+      summary: Obtenir un produit
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Produit
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Product"
+        "404":
+          description: Produit introuvable
+
+  /orders:
+    get:
+      operationId: listOrders
+      tags: [orders]
+      summary: Lister les commandes
+      parameters:
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: ["string", "null"]
+            enum: [pending, confirmed, preparing, ready, cancelled, null]
+      responses:
+        "200":
+          description: Liste des commandes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Order"
+    post:
+      operationId: createOrder
+      tags: [orders]
+      summary: Créer une commande
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrderInput"
+      responses:
+        "201":
+          description: Commande créée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "400":
+          description: Données invalides
+
+  /orders/{id}:
+    get:
+      operationId: getOrder
+      tags: [orders]
+      summary: Obtenir une commande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Commande
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Commande introuvable
+
+  /orders/{id}/cancel:
+    patch:
+      operationId: cancelOrder
+      tags: [orders]
+      summary: Annuler une commande
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Commande annulée
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Order"
+        "404":
+          description: Commande introuvable
+
+  /stats:
+    get:
+      operationId: getStats
+      tags: [orders]
+      summary: Statistiques du jour
+      responses:
+        "200":
+          description: Statistiques
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Stats"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +223,117 @@ components:
       required:
         - status
 
+    Category:
+      type: object
+      required: [id, name, displayOrder]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        icon:
+          type: ["string", "null"]
+        displayOrder:
+          type: integer
+
+    Product:
+      type: object
+      required: [id, categoryId, name, price, available]
+      properties:
+        id:
+          type: integer
+        categoryId:
+          type: integer
+        name:
+          type: string
+        description:
+          type: ["string", "null"]
+        price:
+          type: number
+        imageUrl:
+          type: ["string", "null"]
+        available:
+          type: boolean
+
+    OrderItem:
+      type: object
+      required: [id, productId, productName, quantity, unitPrice, subtotal]
+      properties:
+        id:
+          type: integer
+        productId:
+          type: integer
+        productName:
+          type: string
+        quantity:
+          type: integer
+        unitPrice:
+          type: number
+        subtotal:
+          type: number
+
+    Order:
+      type: object
+      required: [id, status, totalAmount, items, createdAt]
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [pending, confirmed, preparing, ready, cancelled]
+        totalAmount:
+          type: number
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItem"
+        createdAt:
+          type: string
+
+    OrderItemInput:
+      type: object
+      required: [productId, quantity]
+      properties:
+        productId:
+          type: integer
+        quantity:
+          type: integer
+          minimum: 1
+
+    OrderInput:
+      type: object
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/OrderItemInput"
+          minItems: 1
+
+    Stats:
+      type: object
+      required: [totalOrdersToday, totalRevenueToday, pendingOrders, popularItems]
+      properties:
+        totalOrdersToday:
+          type: integer
+        totalRevenueToday:
+          type: number
+        pendingOrders:
+          type: integer
+        popularItems:
+          type: array
+          items:
+            $ref: "#/components/schemas/PopularItem"
+
+    PopularItem:
+      type: object
+      required: [productId, productName, orderCount]
+      properties:
+        productId:
+          type: integer
+        productName:
+          type: string
+        orderCount:
+          type: integer

@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Application de commande de nourriture"
+description = "Une application de commande de nourriture permettant aux clients de parcourir un menu par catégories, d'ajouter des plats à leur panier, de passer des commandes, et de suivre leur historique de commandes. Les restaurants peuvent gérer le menu et les commandes depuis un panneau d'administration."
+version = "1.0.0"
+id = "artifacts/food-order"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23357
+
+[services.development]
+run = "pnpm --filter @workspace/food-order run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/food-order", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/food-order/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23357"
+BASE_PATH = "/"
