@@ -19,8 +19,10 @@ export default function Menu() {
   const [_, setLocation] = useLocation();
   const [activeCategoryId, setActiveCategoryId] = useState<number | null>(null);
   
-  const { data: categories = [], isLoading: isLoadingCategories } = useListCategories();
-  const { data: products = [], isLoading: isLoadingProducts } = useListProducts();
+  const { data: categoriesRaw, isLoading: isLoadingCategories } = useListCategories();
+  const { data: productsRaw, isLoading: isLoadingProducts } = useListProducts();
+  const categories = categoriesRaw ?? [];
+  const products = productsRaw ?? [];
   const { items, addItem, totalItems, totalPrice } = useCart();
 
   // Sort categories by displayOrder
